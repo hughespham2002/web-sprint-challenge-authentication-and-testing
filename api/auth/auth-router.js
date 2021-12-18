@@ -1,15 +1,20 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs');
-const Jokes = require('../jokes/jokes-model');
-const { checkUsernameExists, checkPayload, checkUserInDB } = require('../middleware/middleware');
+const User = require('../users/users-model');
+const { 
+  checkUsernameExists, 
+  checkPayload, 
+  checkUserInDB,
+  checkPasswordLength
+ } = require('../middleware/middleware');
 
 
-router.post('/register', checkPayload, checkUserInDB, async (req, res) => {
+router.post('/register', checkPayload, checkUserInDB,checkPasswordLength, async (req, res) => {
   try{
   const rounds = process.env.BCRYPT_ROUNDS || 8
   const hash = bcrypt.hashSync(req.body.password, rounds)
-  const newUser = await Jokes.add({id: req.body.id, username: req.body.username, password: hash})
+  const newUser = await User.add({id: req.body.id, username: req.body.username, password: hash})
 
   res.status(201).json(newUser)
   } catch(e) {
@@ -45,7 +50,7 @@ router.post('/register', checkPayload, checkUserInDB, async (req, res) => {
 router.post('/login', checkPayload, checkUsernameExists, (req, res) => {
  let {username, password} = req.body
 
- Jokes.findByUserName({username})
+ User.findByUserName({username})
  .then(([user]) => {
    if(user && bcrypt.compareSync(password, user.password)){
      const token = makeToken(user)
@@ -89,7 +94,7 @@ function makeToken(user){
     username: user.username
   }
   const options = {
-    expiresIn: '500s'
+    expiresIn: '1000s'
   }
   return jwt.sign(payload, jwt, options)
 }

@@ -1,4 +1,29 @@
-const Jokes = require('../jokes/jokes-model')
+const User = require("../users/users-model.js");
+
+const checkUsernameExists = async (req, res, next) => {
+  const [user] = await User.getBy({ username: req.body.username });
+  if (!user) {
+    next({ status: 401, message: "Invalid credentials" });
+  } else {
+    req.user = user;
+    next();
+  }
+};
+
+const checkUserInDB =  async (req,res,next) => {
+    try{
+        const row = await User.findBy({username: req.body.username})
+        if(!row.length){
+            next()
+        }
+        else {
+            res.status(401).json("username taken")
+    } 
+    } catch(e) {
+        res.status(500).json(`server error: ${e.message}`)
+
+    }
+}
 
 const checkPayload = (req, res, next) => {
     if(!req.body.username || !req.body.password ){
@@ -9,38 +34,17 @@ const checkPayload = (req, res, next) => {
     }
 }
 
-const checkUserInDB =  async (req,res,next) => {
-    try{
-        const row = await Jokes.findBy({username: req.body.username})
-        if(!row.length){
-            next()
-        }
-        else {
-            res.status(401).json("username taken")
-    } 
-    } catch(e) {
-        res.status(500).json(`server error: ${e.message}`)
-    }
-}
-
-const checkUsernameExists = async ( req, res, next) => {
-    try{
-      const rows = await Jokes.findByUserName({username: req.body.usernme})
-      if(rows.length.trim()){
-        req.userData = rows[0]
-        next()
-      }else{
-        res.status(401).json({
-          "message": "Invalid credentials"
-        })
-      }
-      }catch(e){
-        res.status(500).json('Server broke')
-    }
-}
+const checkPasswordLength = (req, res, next) => {
+  if (!req.body.password || req.body.password.length > 3) {
+    next();
+  } else {
+    next({ status: 422, message: "Password is too short!" });
+  }
+};
 
 module.exports = {
-    checkUsernameExists,
-    checkPayload,
-    checkUserInDB
-} 
+  checkUsernameExists,
+  checkPayload,
+  checkUserInDB,
+  checkPasswordLength
+};
